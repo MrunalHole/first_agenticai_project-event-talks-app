@@ -39,6 +39,34 @@
     --transition-fast: all 0.15s ease;
 }
 
+/* Light Mode Theme Overrides */
+body.light-mode {
+    --bg-main: HSL(210, 20%, 95%);
+    --bg-card: HSL(0, 0%, 100%);
+    --bg-card-hover: HSL(210, 20%, 98%);
+    --bg-header: rgba(240, 244, 248, 0.85);
+    
+    --border-color: HSL(210, 16%, 86%);
+    --border-hover: HSL(210, 16%, 75%);
+    
+    --text-primary: HSL(224, 71%, 8%);
+    --text-secondary: HSL(220, 9%, 25%);
+    --text-muted: HSL(215, 16%, 45%);
+    
+    --primary: HSL(217, 91%, 55%);
+    --primary-hover: HSL(217, 91%, 60%);
+    --primary-glow: rgba(37, 99, 235, 0.15);
+    
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 20px 40px -15px rgba(0, 0, 0, 0.12);
+}
+
+/* Smooth Theme Transitions */
+body, body *, .timeline-card, .btn, .filter-tab, .search-box input {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
 /* Reset and Base Styles */
 * {
     margin: 0;
@@ -270,6 +298,20 @@ body {
 .btn-icon {
     width: 16px;
     height: 16px;
+}
+
+.btn-icon-only {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon-only i {
+    width: 20px;
+    height: 20px;
 }
 
 /* Spin animation for refresh */

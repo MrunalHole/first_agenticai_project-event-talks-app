@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const refreshIcon = document.getElementById('refresh-icon');
     const retryBtn = document.getElementById('retry-btn');
     
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const exportCsvBtn = document.getElementById('export-csv-btn');
+    
     const lastUpdatedSpan = document.getElementById('last-updated');
     const releasesCountSpan = document.getElementById('releases-count');
     const filterTabs = document.querySelectorAll('.filter-tab');
@@ -102,21 +106,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Clear timeline
         timelineContainer.innerHTML = '';
         
-        // Filter based on activeCategory and searchQuery
-        const filtered = releases.filter(item => {
-            const matchesCategory = activeCategory === 'all' || item.category.toLowerCase() === activeCategory.toLowerCase();
-            
-            let matchesSearch = true;
-            if (searchQuery.trim() !== '') {
-                const query = searchQuery.toLowerCase();
-                const titleMatch = item.title.toLowerCase().includes(query);
-                const contentMatch = item.content.toLowerCase().includes(query);
-                const catMatch = item.category.toLowerCase().includes(query);
-                matchesSearch = titleMatch || contentMatch || catMatch;
-            }
-            
-            return matchesCategory && matchesSearch;
-        });
+        // Filter based on activeCategory and searchQuery using helper
+        const filtered = getFilteredReleases();
 
         // Update counts
         releasesCountSpan.textContent = `${filtered.length} Updates`;
@@ -151,6 +142,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${item.content}
                 </div>
                 <div class="card-actions">
+                    <button class="btn btn-secondary btn-sm copy-text-btn" data-index="${releases.indexOf(item)}">
+                        <i data-lucide="copy" class="btn-icon"></i>
+                        <span>Copy Text</span>
+                    </button>
                     <button class="btn btn-secondary btn-sm copy-link-btn" data-link="${item.link}">
                         <i data-lucide="link" class="btn-icon"></i>
                         <span>Copy Link</span>
@@ -172,6 +167,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Attach Event Listeners to rendered cards
     function attachCardListeners() {
+        // Copy Text Action
+        document.querySelectorAll('.copy-text-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.getAttribute('data-index'), 10);
+                const item = releases[idx];
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = item.content;
+                const plainText = tempDiv.textContent || tempDiv.innerText || '';
+                
+                const textToCopy = `BigQuery Release Note - ${item.title} (${item.category})\n\n${plainText.trim()}\n\nRead more: ${item.link}`;
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showToast('Release text copied!');
+                }).catch(err => {
+                    console.error('Could not copy text: ', err);
+                });
+            });
+        });
+
         // Copy Link Action
         document.querySelectorAll('.copy-link-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -325,6 +339,89 @@ document.addEventListener('DOMContentLoaded', () => {
             closeModal();
             showToast('Opening Twitter X Composer...');
         }
+    });
+
+    // Helper function to get filtered releases
+    function getFilteredReleases() {
+        return releases.filter(item => {
+            const matchesCategory = activeCategory === 'all' || item.category.toLowerCase() === activeCategory.toLowerCase();
+            
+            let matchesSearch = true;
+            if (searchQuery.trim() !== '') {
+                const query = searchQuery.toLowerCase();
+                const titleMatch = item.title.toLowerCase().includes(query);
+                const contentMatch = item.content.toLowerCase().includes(query);
+                const catMatch = item.category.toLowerCase().includes(query);
+                matchesSearch = titleMatch || contentMatch || catMatch;
+            }
+            
+            return matchesCategory && matchesSearch;
+        });
+    }
+
+    // Initialize Theme from LocalStorage
+    const currentTheme = localStorage.getItem('theme') || 'dark';
+    if (currentTheme === 'light') {
+        document.body.classList.add('light-mode');
+        themeIcon.setAttribute('data-lucide', 'moon');
+        lucide.createIcons();
+    }
+
+    // Theme Toggle Listener
+    themeToggleBtn.addEventListener('click', () => {
+        document.body.classList.toggle('light-mode');
+        const isLight = document.body.classList.contains('light-mode');
+        
+        if (isLight) {
+            themeIcon.setAttribute('data-lucide', 'moon');
+            localStorage.setItem('theme', 'light');
+        } else {
+            themeIcon.setAttribute('data-lucide', 'sun');
+            localStorage.setItem('theme', 'dark');
+        }
+        lucide.createIcons();
+    });
+
+    // CSV Export Listener
+    exportCsvBtn.addEventListener('click', () => {
+        const filtered = getFilteredReleases();
+        if (filtered.length === 0) {
+            showToast('No releases to export!');
+            return;
+        }
+
+        const escapeCsv = (str) => {
+            if (!str) return '""';
+            return '"' + str.replace(/"/g, '""').replace(/\n/g, ' ') + '"';
+        };
+
+        let csvLines = ['"Date","Category","Content","Link"'];
+        
+        filtered.forEach(item => {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = item.content;
+            const plainText = tempDiv.textContent || tempDiv.innerText || '';
+            
+            const line = [
+                escapeCsv(item.title),
+                escapeCsv(item.category),
+                escapeCsv(plainText.trim()),
+                escapeCsv(item.link)
+            ].join(',');
+            
+            csvLines.push(line);
+        });
+
+        const csvString = csvLines.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `bigquery_releases_${activeCategory}_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('CSV Exported successfully!');
     });
 
     // First load
